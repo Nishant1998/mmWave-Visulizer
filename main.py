@@ -10,6 +10,8 @@ from PyQt5.QtGui import QFont
 import pickle
 from matplotlib import pyplot as plt
 
+import platform
+
 import time
 import serial
 import serial.tools.list_ports
@@ -342,31 +344,52 @@ class MainWindow(QtWidgets.QMainWindow):
 
 if __name__ == "__main__":
     parser = uartParser(type=DEMO_NAME_OOB)
-    # 1. Find all Com Ports
+    
+    # Find all COM Ports
     serialPorts = list(serial.tools.list_ports.comports())
     cli_port, data_port = None, None
-    for port in serialPorts:
-        if (CLI_XDS_SERIAL_PORT_NAME in port.description or CLI_SIL_SERIAL_PORT_NAME in port.description):
-            print(f'CLI COM Port found: {port.device}')
-            cli_port = port.device
-
-        elif (DATA_XDS_SERIAL_PORT_NAME in port.description or DATA_SIL_SERIAL_PORT_NAME in port.description):
-            print(f'Data COM Port found: {port.device}')
-            data_port = port.device
-
+    
+    # Determine the current operating system
+    if platform.system() == "Windows":
+        for port in serialPorts:
+            if (CLI_XDS_SERIAL_PORT_NAME in port.description or CLI_SIL_SERIAL_PORT_NAME in port.description):
+                print(f'CLI COM Port found: {port.device}')
+                cli_port = port.device
+            elif (DATA_XDS_SERIAL_PORT_NAME in port.description or DATA_SIL_SERIAL_PORT_NAME in port.description):
+                print(f'Data COM Port found: {port.device}')
+                data_port = port.device
+    elif platform.system() == "Darwin" :
+        for port in serialPorts:
+            if port.device == "/dev/cu.usbmodemR21010501":
+                print(f'CLI COM Port found: {port.device}')
+                cli_port = port.device
+            if port.device == "/dev/cu.usbmodemR21010504":
+                print(f'Data COM Port found: {port.device}')
+                data_port = port.device
+    elif platform.system() == "Linux":
+        for port in serialPorts:
+            # print(port.device)
+            if port.device == "/dev/ttyACM0":
+                print(f'CLI COM Port found: {port.device}')
+                cli_port = port.device
+            if port.device == "/dev/ttyACM1":
+                print(f'Data COM Port found: {port.device}')
+                data_port = port.device
+    
     if cli_port is None or data_port is None:
         print("PORTS NOT FOUND")
         exit(-1)
+    
     parser.connectComPorts(cli_port, data_port)
 
-    # file_path = "xwr18xx_AOP_profile_2024_03_18T05_58_07_151.cfg"
-    # file = open(file_path, 'r')
-    # parser.sendCfg(file)
-    # print("CFG SEND")
+    file_path = "xwr18xx_AOP_profile_2024_03_18T05_58_07_151.cfg"
+    file = open(file_path, 'r')
+    parser.sendCfg(file)
+    print("CFG SEND")
 
-    # for _ in range(5):
-    #     radarOutputDict = parser.readAndParseUartDoubleCOMPort()
-    #     print(len(radarOutputDict))
+    for _ in range(5):
+        radarOutputDict = parser.readAndParseUartDoubleCOMPort()
+        print(len(radarOutputDict))
 
 
     app = QtWidgets.QApplication(sys.argv)
