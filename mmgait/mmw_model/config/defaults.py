@@ -1,0 +1,34 @@
+from yacs.config import CfgNode as CN
+
+_C = CN()
+
+# MODEL
+_C.MODEL = CN()
+_C.MODEL.MODEL_TYPE = ""
+_C.MODEL.MODEL_NAME = 'dgcnn' # dgcnn mlp pointnet pointtransformer pointmlp
+
+# DATASET
+_C.DATASET = CN()
+_C.DATASET.NAME = "milipoint"
+_C.DATASET.PATH = "data/"
+_C.DATASET.TRAIN_SPLIT = 0.8
+_C.DATASET.VAL_SPLIT = 0.1
+_C.DATASET.TEST_SPLIT = 0.1
+_C.DATASET.SEQ_LENGTH = 5
+
+# DATALOADER
+_C.DATALOADER = CN()
+_C.DATALOADER.BATCH_SIZE = 128
+
+# SOLVER
+_C.SOLVER = CN()
+_C.SOLVER.SEED = 0
+_C.SOLVER.MAX_EPOCHS = 10
+_C.SOLVER.LEARNING_RATE = 0.001
+_C.SOLVER.LOG_PERIOD = 500
+_C.SOLVER.SAVE_AFTER = 20
+
+
+# OUTPUT
+_C.OUTPUT_DIR = CN()
+_C.OUTPUT_DIR = "log/debug"

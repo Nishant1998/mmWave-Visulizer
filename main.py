@@ -10,8 +10,6 @@ from PyQt5.QtGui import QFont
 import pickle
 from matplotlib import pyplot as plt
 
-import platform
-
 import time
 import serial
 import serial.tools.list_ports
@@ -293,7 +291,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
 
-        # Get the next data point from the dummyData instance
         data = self.dummy_data.next_data()
         radarOutputDict = self.radar_parser.readAndParseUartDoubleCOMPort()
 
@@ -310,11 +307,13 @@ class MainWindow(QtWidgets.QMainWindow):
         radarOutputDict = merge_dicts(self.radar_data_history)
         frame_number = radarOutputDict['frameNum']
         point_cloud_data = radarOutputDict['pointCloud']
-        data = point_cloud_data[:, :3] + np.array(self.RADAR_POS)
+        data = point_cloud_data[:, :3]
+
+        data += np.array(self.RADAR_POS)
         data = rotate_point_cloud(data, self.RADAR_ANGLE)
         condition = np.all((data >= 0) & (data <= self.ROOM_SIZE), axis=1)
         # data = data[condition]
-        data = self.clustering.predict(data)
+        data = self.clustering.predict(data)  # (N, n, 3)
         det_obj = []
         for i, cluster in enumerate(data):
             scatter = gl.GLScatterPlotItem(pos=cluster, color=(0, 0, 1, 1), size=2)
@@ -323,73 +322,59 @@ class MainWindow(QtWidgets.QMainWindow):
 
             x_min, y_min, z_min = np.min(cluster, axis=0)
             x_max, y_max, z_max = np.max(cluster, axis=0)
-            center = [(x_max + x_min) / 2, (y_max + y_min) / 2, (z_max + z_min) / 2]
-            det_obj.append([center + [x_min, y_min, z_min, x_max, y_max, z_max]])
+            x_mid = (x_max + x_min) / 2
+            y_mid = (y_max + y_min) / 2
+            z_mid = (z_max + z_min) / 2
+            length = x_max - x_min
+            width = y_max - y_min
+            height = z_max - z_min
+            result = [x_mid, y_mid, z_mid, length, width, height]
+            det_obj.append(result)
 
         tracks = self.tracker.track(det_obj)
         for id, track in tracks.items():
-            x_mid, y_mid, z_mid, x_min, x_max, y_min, y_max, z_min, z_max = track
+            x_mid, y_mid, z_mid, length, width, height = track
             center = np.array([x_mid, y_mid, z_mid])
-            size = np.array([x_max - x_min, y_max - y_min, z_max - z_min])
-            box = gl.GLBoxItem(size=size, color=self.colors[id%len(self.colors)], glOptions='translucent')
-            box.translate(*center)
+            size = np.array([length, width, height])
+            c = tuple(int(x * 255) for x in self.colors[id % len(self.colors)][:3])
+            box = gl.GLBoxItem(size=QtGui.QVector3D(*size), color=QtGui.QColor(*c))
+            box.setSize(x=size[0], y=size[1], z=size[2])
+            box.translate(*[x_mid - length / 2, y_mid - width / 2, z_mid - height / 2])
             self.glview.addItem(box)
             self.history['bbox'].append(box)
 
             center_point = gl.GLScatterPlotItem(pos=center,
-                                                color=self.colors[id%len(self.colors)], size=5)
+                                                color=self.colors[id % len(self.colors)], size=5)
             self.glview.addItem(center_point)
             self.history['center_point'].append(center_point)
 
-
 if __name__ == "__main__":
     parser = uartParser(type=DEMO_NAME_OOB)
-    
-    # Find all COM Ports
+    # 1. Find all Com Ports
     serialPorts = list(serial.tools.list_ports.comports())
     cli_port, data_port = None, None
-    
-    # Determine the current operating system
-    if platform.system() == "Windows":
-        for port in serialPorts:
-            if (CLI_XDS_SERIAL_PORT_NAME in port.description or CLI_SIL_SERIAL_PORT_NAME in port.description):
-                print(f'CLI COM Port found: {port.device}')
-                cli_port = port.device
-            elif (DATA_XDS_SERIAL_PORT_NAME in port.description or DATA_SIL_SERIAL_PORT_NAME in port.description):
-                print(f'Data COM Port found: {port.device}')
-                data_port = port.device
-    elif platform.system() == "Darwin" :
-        for port in serialPorts:
-            if port.device == "/dev/cu.usbmodemR21010501":
-                print(f'CLI COM Port found: {port.device}')
-                cli_port = port.device
-            if port.device == "/dev/cu.usbmodemR21010504":
-                print(f'Data COM Port found: {port.device}')
-                data_port = port.device
-    elif platform.system() == "Linux":
-        for port in serialPorts:
-            # print(port.device)
-            if port.device == "/dev/ttyACM0":
-                print(f'CLI COM Port found: {port.device}')
-                cli_port = port.device
-            if port.device == "/dev/ttyACM1":
-                print(f'Data COM Port found: {port.device}')
-                data_port = port.device
-    
+    for port in serialPorts:
+        if (CLI_XDS_SERIAL_PORT_NAME in port.description or CLI_SIL_SERIAL_PORT_NAME in port.description):
+            print(f'CLI COM Port found: {port.device}')
+            cli_port = port.device
+
+        elif (DATA_XDS_SERIAL_PORT_NAME in port.description or DATA_SIL_SERIAL_PORT_NAME in port.description):
+            print(f'Data COM Port found: {port.device}')
+            data_port = port.device
+
     if cli_port is None or data_port is None:
         print("PORTS NOT FOUND")
         exit(-1)
-    
     parser.connectComPorts(cli_port, data_port)
 
-    file_path = "xwr18xx_AOP_profile_2024_03_18T05_58_07_151.cfg"
-    file = open(file_path, 'r')
-    parser.sendCfg(file)
-    print("CFG SEND")
+    # file_path = "xwr18xx_AOP_profile_2024_03_18T05_58_07_151.cfg"
+    # file = open(file_path, 'r')
+    # parser.sendCfg(file)
+    # print("CFG SEND")
 
-    for _ in range(5):
-        radarOutputDict = parser.readAndParseUartDoubleCOMPort()
-        print(len(radarOutputDict))
+    # for _ in range(5):
+    #     radarOutputDict = parser.readAndParseUartDoubleCOMPort()
+    #     print(len(radarOutputDict))
 
 
     app = QtWidgets.QApplication(sys.argv)

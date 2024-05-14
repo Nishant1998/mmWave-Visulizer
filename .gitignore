@@ -1,2 +1,5 @@
-__pycache__/
-*.pkl
+*.npy
+data/*
+.idea/*
+__pycache__/*
+mmgait/mmw_model/data/*

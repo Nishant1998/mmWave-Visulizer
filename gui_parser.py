@@ -29,7 +29,7 @@ class uartParser():
         self.replay = 0
         self.binData = bytearray(0)
         self.uartCounter = 0
-        self.framesPerFile = 100
+        self.framesPerFile = 1
         self.first_file = True
         self.filepath = datetime.datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
             
