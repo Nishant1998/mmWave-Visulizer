@@ -258,16 +258,19 @@ class MainWindow(QtWidgets.QMainWindow):
         self.colors = [cmap(i) for i in np.linspace(0, 1, 20)]
         self.history = {'scatter_plot': [], 'bbox': [], 'center_point': []}
         self.tracker = Sort()
-
+        print("setting camera")
+        self.cam0, self.cam1 = None, None
         self.save = True
-        self.cam0 = Camera()
-        self.cam1 = None
-        self.save_path = self.create_folder('data/my_data')
+        self.cam0 = Camera(0)
+        print(f"cam 0 done")
+        # self.cam1 = Camera("http://user:pass@172.17.73.199:8080/video")
+        print(f"cam 1 done")
+        self.save_path = self.create_folder('G:\datammw')
         self.data_saver = DataSaver(self.save_path)
 
         # Timer to stop the application after 1 minute
         self.stop_timer = QtCore.QTimer()
-        self.stop_timer.singleShot(1000 * 10, sys.exit)  # Close
+        self.stop_timer.singleShot(1000 * 60 * 5, sys.exit)  # Close
         self.c = 0
         self.save_threads = []
 
@@ -370,8 +373,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
         # Get the next data point from the dummyData instance
-        radarOutputDict = self.data_reader.next()
-        # radarOutputDict = self.radar_parser.readAndParseUartDoubleCOMPort()
+        # radarOutputDict = self.data_reader.next()
+        radarOutputDict = self.radar_parser.readAndParseUartDoubleCOMPort()
         # dict_keys(['error', 'frameNum', 'pointCloud', 'numDetectedPoints', 'rangeProfile'])
         # point cloud : Each point has the following: X, Y, Z, Doppler, SNR, Noise, Track index
 
@@ -393,23 +396,22 @@ class MainWindow(QtWidgets.QMainWindow):
         # if len(self.radar_data_history) > 3:
         #     self.radar_data_history.pop(0)
         # radarOutputDict = merge_dicts(self.radar_data_history)
-        #
+
         # frame_number = radarOutputDict['frameNum']
         # point_cloud_data = radarOutputDict['pointCloud']
         # data = point_cloud_data[:, :3]
-        #
+
         # data += np.array(self.RADAR_POS)
         # data = rotate_point_cloud(data, self.RADAR_ANGLE)
         # condition = np.all((data >= 0) & (data <= self.ROOM_SIZE), axis=1)
         # # data = data[condition]
         # data = self.clustering.predict(data) # (N, n, 3)
         # det_obj = []
-        #
+
         # for i, cluster in enumerate(data):
         #     scatter = gl.GLScatterPlotItem(pos=cluster, color=(0, 1, 0, 1), size=5)
         #     self.glview.addItem(scatter)
         #     self.history['scatter_plot'].append(scatter)
-        #
         #     center = np.mean(cluster, axis=0)
         #     x_min, y_min, z_min = center[0]-0.375, center[1]-0.375, 0
         #     x_max, y_max, z_max = center[0]+0.375, center[1]+0.375, 2

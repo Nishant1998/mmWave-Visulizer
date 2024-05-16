@@ -15,19 +15,37 @@ class DataSaver:
         for dir in self.dirs:
             os.makedirs(os.path.join(root_path, dir), exist_ok=True)
 
+
     def save_data(self, data_dict, image0, image1):
         timestamp = datetime.now().strftime('%Y%m%d%H%M%S.%f')
         # Save data_dict in 'radar' directory
+        print(f"#pt : {data_dict['numDetectedPoints']}")
+        # with open(os.path.join(self.root_path, 'radar', f'{self.timestamp}.pkl'), 'wb') as f:
+        #     pickle.dump(data_dict, f)
+        # # Save images in 'cam0' and 'cam1' directories
+        # if image0 is not None:
+        #     cv2.imwrite(os.path.join(self.root_path, 'cam0', f'{self.timestamp}.jpg'), image0)
+        # if image1 is not None:
+        #     cv2.imwrite(os.path.join(self.root_path, 'cam1', f'{self.timestamp}.jpg'), image1)
 
-        # print(data_dict['numDetectedPoints'])
-        with open(os.path.join(self.root_path, 'radar', f'{timestamp}.pkl'), 'wb') as f:
+        t1 = threading.Thread(target=self.sdict, args=(os.path.join(self.root_path, 'radar', f'{timestamp}.pkl'), data_dict))
+        t2 = threading.Thread(target=self.simg, args=(os.path.join(self.root_path, 'cam0', f'{timestamp}.jpg'), image0))
+        t3 = threading.Thread(target=self.simg, args=(os.path.join(self.root_path, 'cam1', f'{timestamp}.jpg'), image1))
+        t1.start()
+        t2.start()
+        t3.start()
+        t1.join()
+        t2.join()
+        t3.join()
+
+
+    def sdict(self, path, data_dict):
+        with open(path, 'wb') as f:
             pickle.dump(data_dict, f)
-        # Save images in 'cam0' and 'cam1' directories
-        if image0 is not None:
-            cv2.imwrite(os.path.join(self.root_path, 'cam0', f'{timestamp}.jpg'), image0)
-        if image1 is not None:
-            cv2.imwrite(os.path.join(self.root_path, 'cam1', f'{timestamp}.jpg'), image1)
 
+    def simg(self, path, image):
+        if image is not None:
+            cv2.imwrite(path, image)
 
 # class DataSaver:
 #     def __init__(self, root_path):

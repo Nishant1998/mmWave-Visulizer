@@ -1,16 +1,20 @@
-import threading
+import cv2
 
-def fuc1(i):
-    # Your function code here
-    print("This is fuc1() running in a thread with i =", i)
+# Replace the URL with your actual stream URL.
+stream_url = "http://user:pass@172.17.73.199:8080/video"
+cap = cv2.VideoCapture(stream_url)
+print(cap.isOpened())
+while(True):
+    # Capture frame-by-frame
+    ret, frame = cap.read()
 
-# Create and start 10 threads
-threads = []
-for i in range(10):
-    thread = threading.Thread(target=fuc1, args=(i,))
-    thread.start()
-    threads.append(thread)
+    # Display the resulting frame
+    cv2.imshow('IP Camera stream',frame)
 
-    # print(f"{i} *** ")
+    # Exit if Q key is pressed
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
 
-# Other large code here ...
+# When everything done, release the capture
+cap.release()
+cv2.destroyAllWindows()
